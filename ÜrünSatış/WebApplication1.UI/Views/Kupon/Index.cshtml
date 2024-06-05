@@ -1,0 +1,217 @@
+﻿@{
+    ViewData["Title"] = "Index";
+    Layout = "~/Views/Shared/_admin.cshtml";
+}
+
+<div class="container">
+    <h1 class="mt-4">Kupon İşlemleri</h1>
+    <div id="divResult" class="alert alert-success" style="display: none;"></div>
+    <div class="row mt-4">
+        <div class="col-md-8">
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>Kupon Adı</th>
+                            <th>Açıklama</th>
+                            <th>İndirim Oranı</th>
+                            <th>Durumu</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody id="kategoriListesi">
+                        <!-- Dynamic content will be injected here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    Kupon Ekle
+                </div>
+                <div class="card-body">
+                    <form id="kategoriForm">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Kupon Adı</label>
+                            <input type="text" class="form-control" id="name" name="name" placeholder="Kupon Adı">
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Açıklama</label>
+                            <input type="text" class="form-control" id="description" name="description" placeholder="Açıklama">
+                        </div>
+                        <div class="mb-3">
+                            <label for="discount" class="form-label">İndirim Oranı</label>
+                            <input type="number" class="form-control" id="discount" name="discount" placeholder="İndirim Oranı">
+                        </div>
+                        <div class="mb-3">
+                            <label for="isActive" class="form-label">Durumu</label>
+                            <select class="form-select" id="isActive" name="isActive">
+                                <option value="true">Aktif</option>
+                                <option value="false">Pasif</option>
+                            </select>
+                        </div>
+                        <button id="ekle" class="btn btn-primary mt-3">Kaydet</button>
+                        <button id="guncelle" class="btn btn-dark mt-3" style="display:none;">Güncelle</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function () {
+        listele();
+
+        $("#kategoriForm").submit(function (e) {
+            e.preventDefault();
+            if ($("#guncelle").is(":visible")) {
+                guncelle();
+            } else {
+                ekle();
+            }
+        });
+
+        $("#guncelle").hide(); // Başlangıçta gizli olsun
+    });
+
+    var selectedCategoryId = null;
+    var baseurl = "http://localhost:5056/";
+    var gettoken = localStorage.getItem("token");
+
+    function listele() {
+        $.ajax({
+            type: "GET",
+            url: baseurl + "api/Coupons",
+            contentType: "application/json",
+            headers: {
+                "Authorization": "Bearer " + gettoken
+            },
+            success: function (response) {
+                var html = "";
+                $.each(response, function (index, item) {
+                    html += "<tr>";
+                    html += "<td>" + item.name + "</td>";
+                    html += "<td>" + item.description + "</td>";
+                    html += "<td>" + item.discount + "</td>";
+                    html += "<td>" + item.isActive + "</td>";
+                    html += "<td>";
+                    html += "<button class='btn btn-primary me-2' onclick='duzenle(\"" + item.id + "\", \"" + item.name + "\", \"" + item.description + "\", \"" + item.discount + "\", \"" + item.isActive + "\")'>Düzenle</button>";
+                    html += "<button class='btn btn-danger' onclick='sil(\"" + item.id + "\")'>Sil</button>";
+                    html += "</td>";
+                    html += "</tr>";
+                });
+                $("#kategoriListesi").html(html);
+            },
+            error: function (xhr, status, error) {
+                console.error("Error: " + status + " " + error);
+            }
+        });
+    }
+
+    function sil(id) {
+        $.ajax({
+            type: "DELETE",
+            url: baseurl + "api/Coupons/" + id,
+            contentType: "application/json",
+            headers: {
+                "Authorization": "Bearer " + gettoken
+            },
+            success: function (response) {
+                listele(); // Refresh the list after deletion
+                $("#divResult")
+                    .show()
+                    .removeClass()
+                    .addClass("alert alert-success")
+                    .html("Silme Başarılı")
+                    .fadeOut(5000);
+            },
+            error: function (xhr, status, error) {
+                console.error("Error: " + status + " " + error);
+            }
+        });
+    }
+
+    function ekle() {
+        var CouponAddDto = {
+            name: $("#name").val(),
+            description: $("#description").val(),
+            discount: parseFloat($("#discount").val()), // Ensure discount is a number
+            isActive: $("#isActive").val() === "true"
+        };
+
+        $.ajax({
+            type: "POST",
+            url: baseurl + "api/Coupons",
+            contentType: "application/json",
+            data: JSON.stringify(CouponAddDto),
+            headers: {
+                "Authorization": "Bearer " + gettoken
+            },
+            success: function (response) {
+                $("#kategoriForm")[0].reset(); // Reset the form
+                listele(); // Refresh the list
+                $("#divResult")
+                    .show()
+                    .removeClass()
+                    .addClass("alert alert-success")
+                    .html("Kayıt Başarılı!")
+                    .fadeOut(5000);
+            },
+            error: function (xhr, status, error) {
+                console.error("Error: " + status + " " + error);
+            }
+        });
+    }
+
+    function duzenle(id, name, description, discount, isActive) {
+        selectedCategoryId = id;
+        $("#name").val(name);
+        $("#description").val(description);
+        $("#discount").val(discount);
+        $("#isActive").val(isActive === "true" ? "true" : "false");
+        $("#ekle").hide();
+        $("#guncelle").show();
+        console.log("Düzenle button clicked. Category ID: " + id);
+        console.log("Name: " + name + ", Description: " + description + ", Discount: " + discount + ", IsActive: " + isActive);
+    }
+
+    function guncelle() {
+        var CouponDto = {
+            id: selectedCategoryId,
+            name: $("#name").val(),
+            description: $("#description").val(),
+            discount: parseFloat($("#discount").val()), // Ensure discount is a number
+            isActive: $("#isActive").val() === "true"
+        };
+
+        $.ajax({
+            type: "PUT",
+            url: baseurl + "api/Coupons",
+            contentType: "application/json",
+            data: JSON.stringify(CouponDto),
+            headers: {
+                "Authorization": "Bearer " + gettoken
+            },
+            success: function (response) {
+                $("#kategoriForm")[0].reset(); // Reset the form
+                $("#ekle").show();
+                $("#guncelle").hide();
+                listele(); // Refresh the list
+                $("#divResult")
+                    .show()
+                    .removeClass()
+                    .addClass("alert alert-success")
+                    .html("Güncelleme Başarılı!")
+                    .fadeOut(5000);
+            },
+            error: function (xhr, status, error) {
+                console.error("Error: " + status + " " + error);
+            }
+        });
+    }
+</script>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">

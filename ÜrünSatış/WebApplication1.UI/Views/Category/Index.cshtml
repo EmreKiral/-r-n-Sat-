@@ -1,0 +1,335 @@
+﻿@{
+    ViewData["Title"] = "Index";
+    Layout = "~/Views/Shared/_admin.cshtml";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"]</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background-color: #4e73df;
+            color: white;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .btn-primary, .btn-dark {
+            width: 100%;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 5px;
+        }
+
+        .btn-primary {
+            background-color: #4e73df;
+            border-color: #4e73df;
+        }
+
+            .btn-primary:hover {
+                background-color: #2e59d9;
+                border-color: #2653d4;
+            }
+
+        .btn-dark {
+            background-color: #1cc88a;
+            border-color: #1cc88a;
+        }
+
+            .btn-dark:hover {
+                background-color: #17a673;
+                border-color: #169e66;
+            }
+
+        .btn-edit {
+            color: #4e73df;
+            border: none;
+            background: none;
+        }
+
+            .btn-edit:hover {
+                color: #2e59d9;
+            }
+
+        .btn-delete {
+            color: #e74a3b;
+            border: none;
+            background: none;
+        }
+
+            .btn-delete:hover {
+                color: #c82333;
+            }
+
+        .form-group label {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .table thead th {
+            text-align: center;
+            background-color: #4e73df;
+            color: white;
+        }
+
+        .table tbody td {
+            text-align: center;
+        }
+
+        .container {
+            margin-top: 50px;
+        }
+
+        .alert {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="divResult" class="alert alert-success" role="alert">
+        <!-- Success or error message will be shown here -->
+    </div>
+
+    <div class="container">
+        <h1 class="mt-4 text-center">Kategori İşlemleri</h1>
+        <div class="row mt-4">
+            <div class="col-md-8 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead class="thead-dark">
+                                    <tr>
+                                        <th>Kategori Adı</th>
+                                        <th>Durumu</th>
+                                        <th>İşlemler</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="kategoriListesi">
+                                    <!-- Dinamik içerik buraya eklenecek -->
+                                    <!-- Örnek satır -->
+                                    <tr>
+                                        <td>Örnek Kategori</td>
+                                        <td>Aktif</td>
+                                        <td>
+                                            <button class="btn-edit"><i class="fas fa-edit"></i></button>
+                                            <button class="btn-delete"><i class="fas fa-trash-alt"></i></button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        Kategori Ekle
+                    </div>
+                    <div class="card-body">
+                        <form id="kategoriForm">
+                            <div class="form-group">
+                                <label for="name">Kategori Adı</label>
+                                <input type="text" class="form-control" id="name" name="name" placeholder="Kategori adı girin">
+                            </div>
+                            <div class="form-group">
+                                <label for="isActive">Durumu</label>
+                                <select class="form-control" id="isActive" name="isActive">
+                                    <option value="true">Aktif</option>
+                                    <option value="false">Pasif</option>
+                                </select>
+                            </div>
+                            <button id="ekle" class="btn btn-primary mt-3">Kaydet</button>
+                            <button id="guncelle" class="btn btn-dark mt-3" style="display:none;">Güncelle</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            listele();
+
+
+
+
+
+
+            $("#kategoriForm").submit(function (e) {
+                e.preventDefault();
+                var visable = $("#guncelle").is(":visible");
+                if (visable) {
+
+                    guncelle();
+
+
+
+                } else {
+
+                    ekle();
+                }
+            });
+        });
+
+        var selectedCategoryId = null;
+        var baseurl = "http://localhost:5056/";
+        var gettoken = localStorage.getItem("token");
+
+        function listele() {
+            $.ajax({
+                type: "GET",
+                url: baseurl + "api/Categories",
+                contentType: "application/json",
+                headers: {
+                    "Authorization": "Bearer " + gettoken
+                },
+                success: function (response) {
+                    console.log(response);
+                    var html = "";
+                    $.each(response, function (index, item) {
+                        html += "<tr>";
+                        html += "<td>" + item.name + "</td>";
+                        html += "<td>" + item.isActive + "</td>";
+                        html += "<td>";
+                        html += "<button class='btn btn-primary' onclick='duzenle(\"" + item.id + "\", \"" + item.name + "\", \"" + item.isActive + "\")'>Düzenle</button> ";
+                        html += "<button class='btn btn-danger' onclick='sil(\"" + item.id + "\")'>Sil</button>";
+                        html += "</td>";
+                        html += "</tr>";
+                    });
+                    $("#kategoriListesi").html(html);
+                },
+                error: function (xhr, status, error) {
+                    console.error("Error: " + status + " " + error);
+                }
+            });
+        }
+
+        function sil(id) {
+            $.ajax({
+                type: "DELETE",
+                url: baseurl + "api/Categories/" + id,
+                contentType: "application/json",
+                headers: {
+                    "Authorization": "Bearer " + gettoken
+                },
+                success: function (response) {
+                    console.log(response);
+                    listele(); // Refresh the list after deletion
+                    $("#divResult")
+                        .show()
+                        .removeClass()
+                        .addClass("alert alert-success")
+                        .html("Silme Başarılı")
+                        .fadeOut(5000);
+                },
+                error: function (xhr, status, error) {
+                    console.error("Error: " + status + " " + error);
+                }
+            });
+        }
+
+        function ekle() {
+            var CategoryAddDto = {
+                name: $("#name").val(),
+                isActive: $("#isActive").val() === "true"
+            };
+
+            $.ajax({
+                type: "POST",
+                url: baseurl + "api/Categories",
+                contentType: "application/json",
+                data: JSON.stringify(CategoryAddDto),
+                headers: {
+                    "Authorization": "Bearer " + gettoken
+                },
+                success: function (response) {
+                    console.log(response);
+                    $("#kategoriForm")[0].reset(); // Reset the form
+                    listele(); // Refresh the list
+                    $("#divResult")
+                        .show()
+                        .removeClass()
+                        .addClass("alert alert-success")
+                        .html("Kayıt Başarılı")
+                        .fadeOut(5000);
+                },
+                error: function (xhr, status, error) {
+                    console.error("Error: " + status + " " + error);
+                }
+            });
+        }
+
+        function duzenle(id, name, isActive) {
+            selectedCategoryId = id;
+            $("#name").val(name);
+            $("#isActive").val(isActive === "true" ? "true" : "false");
+            $("#ekle").hide();
+            $("#guncelle").show();
+            console.log("Düzenle button clicked. Category ID: " + id);
+            console.log("Name: " + name + ", IsActive: " + isActive);
+        }
+
+        function guncelle() {
+            var CategoryDto = {
+                id: selectedCategoryId,
+                name: $("#name").val(),
+                isActive: $("#isActive").val() === "true"
+            };
+
+            $.ajax({
+                type: "PUT",
+                url: baseurl + "api/Categories",
+                contentType: "application/json",
+                data: JSON.stringify(CategoryDto),
+                headers: {
+                    "Authorization": "Bearer " + gettoken
+                },
+                success: function (response) {
+                    console.log(response);
+                    $("#kategoriForm")[0].reset(); // Reset the form
+                    $("#ekle").show();
+                    $("#guncelle").hide();
+                    listele(); // Refresh the list
+                    $("#divResult")
+                        .show()
+                        .removeClass()
+                        .addClass("alert alert-success")
+                        .html("Güncelleme Başarılı")
+                        .fadeOut(5000);
+                },
+                error: function (xhr, status, error) {
+                    console.error("Error: " + status + " " + error);
+                }
+            });
+        }
+
+    </script>
+
+</body>
+</html>
